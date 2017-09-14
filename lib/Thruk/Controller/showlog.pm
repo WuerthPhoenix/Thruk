@@ -86,10 +86,6 @@ sub index {
                             { host_name           => $host },
                             { service_description => $service},
                         ]},
-                        { -and => [
-                            {type    => 'EXTERNAL COMMAND' },
-                            {message => { '~~' => '(\s|;)'.quotemeta($host).';'.quotemeta($service).'(;|$)' }},
-                        ]},
                 ],
         };
     }
@@ -97,10 +93,6 @@ sub index {
         push @{$filter}, {
                 -or => [
                         { host_name => $host },
-                        { -and => [
-                            {type    => 'EXTERNAL COMMAND' },
-                            {message => { '~~' => '(\s|;)'.quotemeta($host).'(;|$)' }},
-                        ]},
                 ],
         };
     }
