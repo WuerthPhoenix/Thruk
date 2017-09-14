@@ -1900,6 +1900,10 @@ sub _insert_logs {
         elsif($l->{'type'} eq 'SERVICE NOTIFICATION' or $l->{'type'} eq 'HOST NOTIFICATION') {
             $l->{'plugin_output'} = ''; # would result in duplicate output otherwise
         }
+        # Extract service_name and host_name from external command message for faster query
+        elsif ($l->{type} eq 'EXTERNAL COMMAND') {
+            _parse_external_commands($l);
+        }
 
         my $state             = $l->{'state'};
         if($state eq '')      { $state   = 'NULL'; }
@@ -1943,6 +1947,101 @@ sub _insert_logs {
 
     print '. '.$log_count . " entries added\n" if $verbose;
     return $log_count;
+}
+
+##########################################################
+sub _parse_external_commands {
+    my ( $log ) = @_;
+    
+    my $log_message = $log->{message};
+    
+    my @tmp = split(/;/mxo, $log_message,2);
+    my $ext_cmd_type = $tmp[0];
+    my $ext_cmd_content = $tmp[1];
+    if ($ext_cmd_type eq 'ACKNOWLEDGE_HOST_PROBLEM'
+        || $ext_cmd_type eq 'ADD_HOST_COMMENT'
+        || $ext_cmd_type eq 'CHANGE_CUSTOM_HOST_VAR'
+        || $ext_cmd_type eq 'CHANGE_HOST_CHECK_COMMAND'
+        || $ext_cmd_type eq 'CHANGE_HOST_CHECK_TIMEPERIOD'
+        || $ext_cmd_type eq 'CHANGE_HOST_EVENT_HANDLER'
+        || $ext_cmd_type eq 'CHANGE_HOST_MODATTR'
+        || $ext_cmd_type eq 'CHANGE_MAX_HOST_CHECK_ATTEMPTS'
+        || $ext_cmd_type eq 'CHANGE_NORMAL_HOST_CHECK_INTERVAL'
+        || $ext_cmd_type eq 'DELAY_HOST_NOTIFICATION'
+        || $ext_cmd_type eq 'DEL_ALL_HOST_COMMENTS'
+        || $ext_cmd_type eq 'DISABLE_ALL_NOTIFICATIONS_BEYOND_HOST'
+        || $ext_cmd_type eq 'DISABLE_HOST_AND_CHILD_NOTIFICATIONS'
+        || $ext_cmd_type eq 'DISABLE_HOST_CHECK'
+        || $ext_cmd_type eq 'DISABLE_HOST_EVENT_HANDLER'
+        || $ext_cmd_type eq 'DISABLE_HOST_FLAP_DETECTION'
+        || $ext_cmd_type eq 'DISABLE_HOST_NOTIFICATIONS'
+        || $ext_cmd_type eq 'DISABLE_HOST_SVC_CHECKS'
+        || $ext_cmd_type eq 'DISABLE_HOST_SVC_NOTIFICATIONS'
+        || $ext_cmd_type eq 'DISABLE_PASSIVE_HOST_CHECKS'
+        || $ext_cmd_type eq 'ENABLE_ALL_NOTIFICATIONS_BEYOND_HOST'
+        || $ext_cmd_type eq 'ENABLE_HOST_AND_CHILD_NOTIFICATIONS'
+        || $ext_cmd_type eq 'ENABLE_HOST_CHECK'
+        || $ext_cmd_type eq 'ENABLE_HOST_EVENT_HANDLER'
+        || $ext_cmd_type eq 'ENABLE_HOST_FLAP_DETECTION'
+        || $ext_cmd_type eq 'ENABLE_HOST_NOTIFICATIONS'
+        || $ext_cmd_type eq 'ENABLE_HOST_SVC_CHECKS'
+        || $ext_cmd_type eq 'ENABLE_HOST_SVC_NOTIFICATIONS'
+        || $ext_cmd_type eq 'ENABLE_PASSIVE_HOST_CHECKS'
+        || $ext_cmd_type eq 'PROCESS_HOST_CHECK_RESULT'
+        || $ext_cmd_type eq 'REMOVE_HOST_ACKNOWLEDGEMENT'
+        || $ext_cmd_type eq 'SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME'
+        || $ext_cmd_type eq 'SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME'
+        || $ext_cmd_type eq 'SCHEDULE_FORCED_HOST_CHECK'
+        || $ext_cmd_type eq 'SCHEDULE_FORCED_HOST_SVC_CHECKS'
+        || $ext_cmd_type eq 'SCHEDULE_HOST_CHECK'
+        || $ext_cmd_type eq 'SCHEDULE_HOST_DOWNTIME'
+        || $ext_cmd_type eq 'SCHEDULE_HOST_SVC_CHECKS'
+        || $ext_cmd_type eq 'SCHEDULE_HOST_SVC_DOWNTIME'
+        || $ext_cmd_type eq 'SEND_CUSTOM_HOST_NOTIFICATION'
+        || $ext_cmd_type eq 'SET_HOST_NOTIFICATION_NUMBER'
+        || $ext_cmd_type eq 'START_OBSESSING_OVER_HOST'
+        || $ext_cmd_type eq 'STOP_OBSESSING_OVER_HOST'
+    ) {
+        my @tmp2 = split(/;/mxo, $ext_cmd_content,2);
+        $log->{'host_name'} = $tmp2[0];
+    } elsif ($ext_cmd_type eq 'ACKNOWLEDGE_SVC_PROBLEM'
+        || $ext_cmd_type eq 'ADD_SVC_COMMENT'
+        || $ext_cmd_type eq 'CHANGE_CUSTOM_SVC_VAR'
+        || $ext_cmd_type eq 'CHANGE_MAX_SVC_CHECK_ATTEMPTS'
+        || $ext_cmd_type eq 'CHANGE_NORMAL_SVC_CHECK_INTERVAL'
+        || $ext_cmd_type eq 'CHANGE_RETRY_HOST_CHECK_INTERVAL'
+        || $ext_cmd_type eq 'CHANGE_RETRY_SVC_CHECK_INTERVAL'
+        || $ext_cmd_type eq 'CHANGE_SVC_CHECK_COMMAND'
+        || $ext_cmd_type eq 'CHANGE_SVC_CHECK_TIMEPERIOD'
+        || $ext_cmd_type eq 'CHANGE_SVC_EVENT_HANDLER'
+        || $ext_cmd_type eq 'CHANGE_SVC_MODATTR'
+        || $ext_cmd_type eq 'CHANGE_SVC_NOTIFICATION_TIMEPERIOD'
+        || $ext_cmd_type eq 'DEL_ALL_SVC_COMMENTS'
+        || $ext_cmd_type eq 'DISABLE_PASSIVE_SVC_CHECKS'
+        || $ext_cmd_type eq 'DISABLE_SERVICE_FLAP_DETECTION'
+        || $ext_cmd_type eq 'DISABLE_SVC_CHECK'
+        || $ext_cmd_type eq 'DISABLE_SVC_EVENT_HANDLER'
+        || $ext_cmd_type eq 'DISABLE_SVC_FLAP_DETECTION'
+        || $ext_cmd_type eq 'DISABLE_SVC_NOTIFICATIONS'
+        || $ext_cmd_type eq 'ENABLE_PASSIVE_SVC_CHECKS'
+        || $ext_cmd_type eq 'ENABLE_SVC_CHECK'
+        || $ext_cmd_type eq 'ENABLE_SVC_EVENT_HANDLER'
+        || $ext_cmd_type eq 'ENABLE_SVC_FLAP_DETECTION'
+        || $ext_cmd_type eq 'ENABLE_SVC_NOTIFICATIONS'
+        || $ext_cmd_type eq 'PROCESS_SERVICE_CHECK_RESULT'
+        || $ext_cmd_type eq 'REMOVE_SVC_ACKNOWLEDGEMENT'
+        || $ext_cmd_type eq 'SCHEDULE_FORCED_SVC_CHECK'
+        || $ext_cmd_type eq 'SCHEDULE_SVC_CHECK'
+        || $ext_cmd_type eq 'SCHEDULE_SVC_DOWNTIME'
+        || $ext_cmd_type eq 'SEND_CUSTOM_SVC_NOTIFICATION'
+        || $ext_cmd_type eq 'SET_SVC_NOTIFICATION_NUMBER'
+        || $ext_cmd_type eq 'START_OBSESSING_OVER_SVC'
+        || $ext_cmd_type eq 'STOP_OBSESSING_OVER_SVC'
+    ) {
+        my @tmp2 = split(/;/mxo, $ext_cmd_content, 5);
+        $log->{'host_name'} = $tmp2[0];
+        $log->{'service_description'} = $tmp2[1];
+    }
 }
 
 ##########################################################
