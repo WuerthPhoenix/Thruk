@@ -1950,14 +1950,16 @@ sub _insert_logs {
 }
 
 ##########################################################
+
 sub _parse_external_commands {
     my ( $log ) = @_;
-    
+
     my $log_message = $log->{message};
-    
-    my @tmp = split(/;/mxo, $log_message,2);
-    my $ext_cmd_type = $tmp[0];
-    my $ext_cmd_content = $tmp[1];
+
+    my ($type, $ext_cmd_type, $ext_cmd_content) = ($log_message =~ m/\[\d+\] (.+?): (.*?);(.*)/);
+
+    return if !defined $type || $type ne "EXTERNAL COMMAND";
+
     if ($ext_cmd_type eq 'ACKNOWLEDGE_HOST_PROBLEM'
         || $ext_cmd_type eq 'ADD_HOST_COMMENT'
         || $ext_cmd_type eq 'CHANGE_CUSTOM_HOST_VAR'
